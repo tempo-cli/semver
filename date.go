@@ -3,6 +3,7 @@ package semver
 import (
 	"bytes"
 	"fmt"
+	"github.com/spf13/cast"
 )
 
 type date struct {
@@ -18,8 +19,8 @@ func (v *date) String() string {
 		fmt.Fprintf(&buf, "-"+v.Stability)
 	}
 
-	if v.Patch != "" {
-		fmt.Fprintf(&buf, v.Patch)
+	if 0 != v.Patch {
+		fmt.Fprintf(&buf, cast.ToString(v.Patch))
 	}
 
 	if v.Metadata != "" {

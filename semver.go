@@ -8,7 +8,7 @@ import (
 )
 
 type semver struct {
-	Major, Minor, Patch, Extra string
+	Major, Minor, Patch, Extra int
 	PreRelease                 string
 	State                      string
 	Stability                  string
@@ -18,15 +18,15 @@ type semver struct {
 }
 
 func (v *semver) major() int {
-	return cast.ToInt(v.Major)
+	return v.Major
 }
 
 func (v *semver) minor() int {
-	return cast.ToInt(v.Minor)
+	return v.Minor
 }
 
 func (v *semver) patch() int {
-	return cast.ToInt(v.Patch)
+	return v.Patch
 }
 
 func (v *semver) pre() float32 {
@@ -40,18 +40,14 @@ func (v *semver) stability() string {
 func (v *semver) String() string {
 	var buf bytes.Buffer
 
-	fmt.Fprintf(&buf, v.Major)
+	fmt.Fprintf(&buf, cast.ToString(v.Major))
 
-	if "" != v.Minor {
-		fmt.Fprintf(&buf, ".%s", v.Minor)
-	}
+	if 9999999 != v.Major {
+		fmt.Fprintf(&buf, ".%d", v.Minor)
 
-	if "" != v.Patch {
-		fmt.Fprintf(&buf, ".%s", v.Patch)
-	}
+		fmt.Fprintf(&buf, ".%d", v.Patch)
 
-	if "" != v.Extra {
-		fmt.Fprintf(&buf, ".%s", v.Extra)
+		fmt.Fprintf(&buf, ".%d", v.Extra)
 	}
 
 	if v.PreRelease != "" {

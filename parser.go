@@ -2,6 +2,7 @@ package semver
 
 import (
 	"fmt"
+	"github.com/spf13/cast"
 	"regexp"
 	"strings"
 )
@@ -37,7 +38,7 @@ func NewVersion(version string) (Version, error) {
 
 	if match, _ := regexp.Match("(?i)^(?:dev-)?(?:master|trunk|default)$", []byte(version)); match {
 		return &semver{
-			Major:     "9999999",
+			Major:     9999999,
 			Stability: "dev",
 			State:     "dev",
 			Original:  originalVersion,
@@ -59,7 +60,7 @@ func NewVersion(version string) (Version, error) {
 	if versionMatch != nil {
 		stability := expandStability(versionMatch[5])
 		return &semver{
-			Major:      versionMatch[1],
+			Major:      cast.ToInt(versionMatch[1]),
 			Minor:      parseVersionNumber(versionMatch[2]),
 			Patch:      parseVersionNumber(versionMatch[3]),
 			Extra:      parseVersionNumber(versionMatch[4]),
@@ -82,7 +83,7 @@ func NewVersion(version string) (Version, error) {
 		return &date{
 			semver{
 				Stability: expandStability(dateTimeMatch[2]),
-				Patch:     dateTimeMatch[3],
+				Patch:     cast.ToInt(dateTimeMatch[3]),
 				Parsed:    versionString,
 				Original:  originalVersion,
 			},
@@ -170,10 +171,10 @@ func ParseStability(stability string) string {
 	return "stable"
 }
 
-func parseVersionNumber(version string) string {
+func parseVersionNumber(version string) int {
 	if "" == version {
-		return "0"
+		return 0
 	}
 
-	return strings.TrimPrefix(version, ".")
+	return cast.ToInt(strings.TrimPrefix(version, "."))
 }
