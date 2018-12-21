@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/spf13/cast"
+	"strings"
 )
 
 type semver struct {
@@ -21,15 +22,19 @@ func (v *semver) major() int {
 }
 
 func (v *semver) minor() int {
-	return cast.ToInt(v.Major)
+	return cast.ToInt(v.Minor)
 }
 
 func (v *semver) patch() int {
-	return cast.ToInt(v.Major)
+	return cast.ToInt(v.Patch)
 }
 
-func (v *semver) pre() int {
-	return cast.ToInt(v.Major)
+func (v *semver) pre() float32 {
+	return cast.ToFloat32(strings.Replace(v.PreRelease, v.Stability, "", -1))
+}
+
+func (v *semver) stability() string {
+	return v.Stability
 }
 
 func (v *semver) String() string {

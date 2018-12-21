@@ -6,18 +6,6 @@ import (
 	"strings"
 )
 
-type Version interface {
-	String() string
-
-	/*GreaterThan(*Version) bool
-	GreaterThanOrEqual(*Version) bool
-	LessThan(*Version) bool
-	LessThanOrEqual(*Version) bool
-	Equal(*Version) bool
-	NotEqual(*Version) bool
-	Compare(*Version) int*/
-}
-
 const (
 	aliasRegex string = `^([^,\s]+)\s+as\s+([^,\s]+)$`
 
