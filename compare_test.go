@@ -1,6 +1,7 @@
 package semver
 
 import (
+	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
@@ -19,9 +20,7 @@ func TestCompareGreaterThan(t *testing.T) {
 		version1, _ := NewVersion(tc.versionA)
 		version2, _ := NewVersion(tc.versionB)
 
-		if tc.result != version1.GreaterThan(version2) {
-			t.Fatalf("error for comparison: %s is not greater than %s", tc.versionA, tc.versionB)
-		}
+		assert.Equal(t, tc.result, version1.GreaterThan(version2), "%s is not greater than %s", tc.versionA, tc.versionB)
 	}
 }
 
@@ -40,9 +39,7 @@ func TestCompareGreaterThanOrEqual(t *testing.T) {
 		version1, _ := NewVersion(tc.versionA)
 		version2, _ := NewVersion(tc.versionB)
 
-		if tc.result != version1.GreaterThanOrEqual(version2) {
-			t.Fatalf("error for comparison: %s is not greater than or equal to %s", tc.versionA, tc.versionB)
-		}
+		assert.Equal(t, tc.result, version1.GreaterThanOrEqual(version2), "%s is not greater than or equal to %s", tc.versionA, tc.versionB)
 	}
 }
 
@@ -62,9 +59,7 @@ func TestCompareLessThan(t *testing.T) {
 		version1, _ := NewVersion(tc.versionA)
 		version2, _ := NewVersion(tc.versionB)
 
-		if tc.result != version1.LessThan(version2) {
-			t.Fatalf("error for comparison: %s is not less than %s", tc.versionA, tc.versionB)
-		}
+		assert.Equal(t, tc.result, version1.LessThan(version2), "%s is not less than %s", tc.versionA, tc.versionB)
 	}
 }
 
@@ -83,9 +78,7 @@ func TestCompareLessThanOrEqual(t *testing.T) {
 		version1, _ := NewVersion(tc.versionA)
 		version2, _ := NewVersion(tc.versionB)
 
-		if tc.result != version1.LessThanOrEqual(version2) {
-			t.Fatalf("error for comparison: %s is not less than or equal to %s", tc.versionA, tc.versionB)
-		}
+		assert.Equal(t, tc.result, version1.LessThanOrEqual(version2), "%s is not less than or equal to %s", tc.versionA, tc.versionB)
 	}
 }
 
@@ -104,9 +97,7 @@ func TestCompareEqual(t *testing.T) {
 		version1, _ := NewVersion(tc.versionA)
 		version2, _ := NewVersion(tc.versionB)
 
-		if tc.result != version1.Equal(version2) {
-			t.Fatalf("error for comparison: %s is not equal to %s", tc.versionA, tc.versionB)
-		}
+		assert.Equal(t, tc.result, version1.Equal(version2), "%s is not equal to %s", tc.versionA, tc.versionB)
 	}
 }
 
@@ -125,18 +116,16 @@ func TestCompareNotEqual(t *testing.T) {
 		version1, _ := NewVersion(tc.versionA)
 		version2, _ := NewVersion(tc.versionB)
 
-		if tc.result != version1.NotEqual(version2) {
-			t.Fatalf("error for comparison: %s is equal to %s", tc.versionA, tc.versionB)
-		}
+		assert.Equal(t, tc.result, version1.NotEqual(version2), "Expected %s and %s to not be equal", tc.versionA, tc.versionB)
 	}
 }
 
 func TestCompare(t *testing.T) {
 	cases := []struct {
-		versionA   string
+		versionA string
 		operator string
-		versionB   string
-		result     bool
+		versionB string
+		result   bool
 	}{
 		{"1.25.0", ">", "1.24.0", true},
 		{"1.25.0", ">", "1.25.0", false},
@@ -173,8 +162,6 @@ func TestCompare(t *testing.T) {
 		version1, _ := NewVersion(tc.versionA)
 		version2, _ := NewVersion(tc.versionB)
 
-		if tc.result != version1.Compare(version2, tc.operator) {
-			t.Fatalf("error for comparison: %s does not match constraint %s %s", tc.versionA, tc.operator, tc.versionB)
-		}
+		assert.Equal(t, tc.result, version1.Compare(version2, tc.operator), "failed comparing that %s %s %s", tc.versionA, tc.operator, tc.versionB)
 	}
 }

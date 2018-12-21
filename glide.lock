@@ -1,6 +1,10 @@
-hash: 36d566856b389c92ecd6e2539430330ce3c989111370cb5dede7da18a5a3ace0
-updated: 2018-12-21T11:07:23.951359+02:00
+hash: 7c47e83e30bb243969d3a2c803c7247bc8484d65ced1189b681f7afe48e4aca7
+updated: 2018-12-21T11:17:25.675099+02:00
 imports:
 - name: github.com/spf13/cast
   version: 8c9545af88b134710ab1cd196795e7f2388358d7
-testImports: []
+testImports:
+- name: github.com/stretchr/testify
+  version: f35b8ab0b5a2cef36673838d662e249dd9c94686
+  subpackages:
+  - assert

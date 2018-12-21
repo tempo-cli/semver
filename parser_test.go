@@ -1,7 +1,7 @@
 package semver
 
 import (
-	"fmt"
+	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
@@ -59,15 +59,8 @@ func TestNewVersion(t *testing.T) {
 	for _, tc := range cases {
 		version, err := NewVersion(tc.version)
 
-		if err != nil {
-			t.Fatalf("error for version %s: %s", tc.version, err)
-		}
-
-		normalized := version.String()
-		if normalized != tc.normalized {
-			fmt.Println(version)
-			t.Fatalf("error for version %s: %s is not equal to %s", tc.version, normalized, tc.normalized)
-		}
+		assert.Nil(t, err, "version %s cannot be parsed", tc.version)
+		assert.Equal(t, version.String(), tc.normalized, "version %s cannot be normalized. Expected: %s, got: %s", tc.version, tc.normalized, version.String())
 	}
 }
 
@@ -89,9 +82,7 @@ func TestFailedNewVersion(t *testing.T) {
 	for _, tc := range cases {
 		_, err := NewVersion(tc.version)
 
-		if err == nil {
-			t.Fatalf("error for version %s", tc.version)
-		}
+		assert.NotNil(t, err, "version %s cannot be parsed", tc.version)
 	}
 }
 
@@ -120,15 +111,8 @@ func TestNormalizeBranch(t *testing.T) {
 	for _, tc := range cases {
 		version, err := NormalizeBranch(tc.version)
 
-		if err != nil {
-			t.Fatalf("error for version %s: %s", tc.version, err)
-		}
-
-		normalized := version.String()
-		if normalized != tc.normalized {
-			fmt.Println(version)
-			t.Fatalf("error for version %s: %s is not equal to %s", tc.version, normalized, tc.normalized)
-		}
+		assert.Nil(t, err, "version %s cannot be parsed", tc.version)
+		assert.Equal(t, tc.normalized, version.String(), "branch %s cannot be normalized, expected: %s, got: %s", tc.version, tc.normalized, version.String())
 	}
 }
 
@@ -162,10 +146,8 @@ func TestParseStability(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		stablility := ParseStability(tc.version)
+		stability := ParseStability(tc.version)
 
-		if stablility != tc.stablility {
-			t.Fatalf("error for stablility %s: %s is not equal to %s", tc.version, stablility, tc.stablility)
-		}
+		assert.Equal(t, tc.stablility, stability, "error parsing stability for version %s: expected: %s got: %s", tc.version, tc.stablility, stability)
 	}
 }
