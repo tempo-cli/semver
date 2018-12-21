@@ -67,13 +67,12 @@ func compare(a Version, b Version) int {
 		return d
 	}
 
-	// Major, minor, and patch versions are the same.
+	if d := compareStability(a.stability(), b.stability()); d != Equal {
+		return d
+	}
+
 	aPre := a.pre()
 	bPre := b.pre()
-
-	if stability := compareStability(a.stability(), b.stability()); 0 != stability {
-		return stability
-	}
 
 	if aPre > bPre {
 		return GreaterThan
@@ -111,3 +110,4 @@ func comparePart(a int, b int) int {
 
 	return Equal
 }
+
