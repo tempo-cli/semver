@@ -12,7 +12,7 @@ func TestNewVersion(t *testing.T) {
 		normalized string
 	}{
 		// Use all test cases from composer to ensure feature parity
-		/*{"none", "1.0.0", "1.0.0.0"},
+		{"none", "1.0.0", "1.0.0.0"},
 		{"none/2", "1.2.3.4", "1.2.3.4"},
 		{"parses state", "1.0.0RC1dev", "1.0.0.0-RC1-dev"},
 		{"CI parsing", "1.0.0-rC15-dev", "1.0.0.0-RC15-dev"},
@@ -26,7 +26,7 @@ func TestNewVersion(t *testing.T) {
 		{"parses long/semver", "10.4.13beta.2", "10.4.13.0-beta2"},
 		{"expand shorthand", "10.4.13-b", "10.4.13.0-beta"},
 		{"expand shorthand/2", "10.4.13-b5", "10.4.13.0-beta5"},
-		{"strips leading v", "v1.0.0", "1.0.0.0"},*/
+		{"strips leading v", "v1.0.0", "1.0.0.0"},
 
 		// Dates as classical versions
 		{"parses dates y-m as classical", "2010.01", "2010.1.0.0"},
