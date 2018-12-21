@@ -1,0 +1,22 @@
+language: go
+
+sudo: false
+
+matrix:
+  include:
+  - go: 1.4.x
+  - go: 1.5.x
+  - go: 1.6.x
+  - go: 1.7.x
+  - go: 1.8.x
+  - go: 1.9.x
+  - go: 1.10.x
+  - go: tip
+  allow_failures:
+  - go: tip
+
+before_install:
+  - curl https://glide.sh/get | sh
+
+install:
+  - glide install
