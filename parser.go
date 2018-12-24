@@ -7,29 +7,32 @@ import (
 	"strings"
 )
 
-const (
-	aliasRegex string = `^([^,\s]+)\s+as\s+([^,\s]+)$`
+var (
+	aliasRegex = regexp.MustCompile(`^([^,\s]+)\s+as\s+([^,\s]+)$`)
 
-	stabilityRegex string = `(?i)[._-]?(?:(dev|stable|beta|b|RC|alpha|a|patch|pl|p)((?:[.-]?\d+)*)?)`
+	stabilityRegex = `(?i)[._-]?(?:(dev|stable|beta|b|RC|alpha|a|patch|pl|p)((?:[.-]?\d+)*)?)`
 
-	branchRegex string = `^v?(\d+)(\.(?:\d+|[xX*]))?(\.(?:\d+|[xX*]))?(\.(?:\d+|[xX*]))?$`
+	branchRegex = regexp.MustCompile(`^v?(\d+)(\.(?:\d+|[xX*]))?(\.(?:\d+|[xX*]))?(\.(?:\d+|[xX*]))?$`)
 
 	versionRegex =
 	// Match normal version string (1.2.3)
 		`^v?([0-9]{1,5})(\.[0-9]+)?(\.[0-9]+)?(\.[0-9]+)?` +
 
 		// Match pre-release info (-beta.2). This supports dot, underscore, dash or nothing as a prefix to match Composers rules
-			stabilityRegex + "?([.-]?dev)?" +
+			stabilityRegex + "?([.-]?dev)?"
 
-		// Match metadata (+build.1234)
-			`(\+([0-9A-Za-z\-]+(\.[0-9A-Za-z\-]+)*))?$`
+	// Match metadata (E.G +build.1234)
+	versionRegexC = regexp.MustCompile(versionRegex + `(\+([0-9A-Za-z\-]+(\.[0-9A-Za-z\-]+)*))?$`)
 
-	dateTimeRegex = `^v?(\d{4}(?:[.:-]?\d{2}){1,6}(?:[.:-]?\d{1,3})?)` + stabilityRegex + `?$`
+	dateTimeRegex = regexp.MustCompile(`^v?(\d{4}(?:[.:-]?\d{2}){1,6}(?:[.:-]?\d{1,3})?)` + stabilityRegex + `?$`)
+
+	stabilityRegexC = regexp.MustCompile(stabilityRegex)
+	branchMatcher   = regexp.MustCompile(`(?i)(.*?)[.-]?dev$`)
+	replaceRegex    = regexp.MustCompile(`([^0-9]+)`)
 )
 
-func NewVersion(version string) (Version, error) {
+func NewVersion(version string) (*Version, error) {
 	originalVersion := version
-	aliasRegex := regexp.MustCompile(aliasRegex)
 	alias := aliasRegex.FindStringSubmatch(version)
 
 	if alias != nil {
@@ -37,34 +40,32 @@ func NewVersion(version string) (Version, error) {
 	}
 
 	if match, _ := regexp.Match("(?i)^(?:dev-)?(?:master|trunk|default)$", []byte(version)); match {
-		return &semver{
+		return &Version{
 			Major:     9999999,
 			Stability: "dev",
-			State:     "dev",
+			State:     "",
 			Original:  originalVersion,
 		}, nil
 	}
 
 	if len(version) > 4 && "dev-" == strings.ToLower(version[0:4]) {
-		return &branch{
-			semver{
-				Parsed:   fmt.Sprintf("dev-%s", version[4:]),
-				Original: originalVersion,
-			},
+		return &Version{
+			Parsed:   fmt.Sprintf("dev-%s", version[4:]),
+			Original: originalVersion,
+			isBranch: true,
 		}, nil
 	}
 
-	versionRegexC := regexp.MustCompile(versionRegex)
 	versionMatch := versionRegexC.FindStringSubmatch(version)
 
 	if versionMatch != nil {
 		stability := expandStability(versionMatch[5])
-		return &semver{
+		return &Version{
 			Major:      cast.ToInt(versionMatch[1]),
 			Minor:      parseVersionNumber(versionMatch[2]),
 			Patch:      parseVersionNumber(versionMatch[3]),
 			Extra:      parseVersionNumber(versionMatch[4]),
-			PreRelease: stability + strings.TrimLeft(versionMatch[6], ".-"),
+			PreRelease: strings.TrimLeft(versionMatch[6], ".-"),
 			Stability:  stability,
 			State:      strings.TrimLeft(versionMatch[7], "-"),
 			Metadata:   versionMatch[9],
@@ -72,25 +73,21 @@ func NewVersion(version string) (Version, error) {
 		}, nil
 	}
 
-	dateTimeRegexC := regexp.MustCompile(dateTimeRegex)
-	dateTimeMatch := dateTimeRegexC.FindStringSubmatch(version)
+	dateTimeMatch := dateTimeRegex.FindStringSubmatch(version)
 
 	if dateTimeMatch != nil {
 
-		var replace = regexp.MustCompile(`([^0-9]+)`)
-		versionString := replace.ReplaceAllString(dateTimeMatch[1], `.`)
+		versionString := replaceRegex.ReplaceAllString(dateTimeMatch[1], `.`)
 
-		return &date{
-			semver{
-				Stability: expandStability(dateTimeMatch[2]),
-				Patch:     cast.ToInt(dateTimeMatch[3]),
-				Parsed:    versionString,
-				Original:  originalVersion,
-			},
+		return &Version{
+			Stability: expandStability(dateTimeMatch[2]),
+			Patch:     cast.ToInt(dateTimeMatch[3]),
+			Parsed:    versionString,
+			Original:  originalVersion,
+			isDate:    true,
 		}, nil
 	}
 
-	branchMatcher := regexp.MustCompile(`(?i)(.*?)[.-]?dev$`)
 	branchMatches := branchMatcher.FindStringSubmatch(version)
 	if nil != branchMatches {
 		return NormalizeBranch(branchMatches[1])
@@ -99,7 +96,7 @@ func NewVersion(version string) (Version, error) {
 	return nil, fmt.Errorf("unable to parse version %s", version)
 }
 
-func NormalizeBranch(branch string) (Version, error) {
+func NormalizeBranch(branch string) (*Version, error) {
 
 	valid := map[string]bool{"master": true, "trunk": true, "default": true}
 
@@ -107,8 +104,7 @@ func NormalizeBranch(branch string) (Version, error) {
 		return NewVersion(branch)
 	}
 
-	branchReg := regexp.MustCompile(branchRegex)
-	branchMatches := branchReg.FindStringSubmatch(branch)
+	branchMatches := branchRegex.FindStringSubmatch(branch)
 
 	if nil != branchMatches {
 		versionString := ""
@@ -152,7 +148,6 @@ func ParseStability(stability string) string {
 		return "dev"
 	}
 
-	stabilityRegexC := regexp.MustCompile(stabilityRegex)
 	stabilityMatch := stabilityRegexC.FindStringSubmatch(stability)
 
 	if nil != stabilityMatch {

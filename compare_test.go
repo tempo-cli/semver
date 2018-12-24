@@ -202,51 +202,51 @@ func getComparisonCases() []struct {
 }
 
 func getComparisonCasesForBench() []struct {
-	versionA Version
+	versionA *Version
 	operator string
-	versionB Version
+	versionB *Version
 } {
 	cases := []struct {
-		versionA Version
+		versionA *Version
 		operator string
-		versionB Version
+		versionB *Version
 	}{
-		{&semver{Major: 1, Minor: 25, Patch: 9}, ">", &semver{Major: 1, Minor: 24, Patch: 9}},
-		{&semver{Major: 1, Minor: 25, Patch: 9}, ">", &semver{Major: 1, Minor: 25, Patch: 9}},
-		{&semver{Major: 1, Minor: 25, Patch: 9}, ">", &semver{Major: 1, Minor: 26, Patch: 9}},
+		{&Version{Major: 1, Minor: 25, Patch: 9}, ">", &Version{Major: 1, Minor: 24, Patch: 9}},
+		{&Version{Major: 1, Minor: 25, Patch: 9}, ">", &Version{Major: 1, Minor: 25, Patch: 9}},
+		{&Version{Major: 1, Minor: 25, Patch: 9}, ">", &Version{Major: 1, Minor: 26, Patch: 9}},
 
-		{&semver{Major: 1, Minor: 25, Patch: 9}, ">=", &semver{Major: 1, Minor: 24, Patch: 9}},
-		{&semver{Major: 1, Minor: 25, Patch: 9}, ">=", &semver{Major: 1, Minor: 25, Patch: 9}},
-		{&semver{Major: 1, Minor: 25, Patch: 9}, ">=", &semver{Major: 1, Minor: 26, Patch: 9}},
+		{&Version{Major: 1, Minor: 25, Patch: 9}, ">=", &Version{Major: 1, Minor: 24, Patch: 9}},
+		{&Version{Major: 1, Minor: 25, Patch: 9}, ">=", &Version{Major: 1, Minor: 25, Patch: 9}},
+		{&Version{Major: 1, Minor: 25, Patch: 9}, ">=", &Version{Major: 1, Minor: 26, Patch: 9}},
 
-		{&semver{Major: 1, Minor: 25, Patch: 9}, "<", &semver{Major: 1, Minor: 24, Patch: 9}},
-		{&semver{Major: 1, Minor: 25, Patch: 9}, "<", &semver{Major: 1, Minor: 25, Patch: 9}},
-		{&semver{Major: 1, Minor: 25, Patch: 9}, "<", &semver{Major: 1, Minor: 26, Patch: 9}},
+		{&Version{Major: 1, Minor: 25, Patch: 9}, "<", &Version{Major: 1, Minor: 24, Patch: 9}},
+		{&Version{Major: 1, Minor: 25, Patch: 9}, "<", &Version{Major: 1, Minor: 25, Patch: 9}},
+		{&Version{Major: 1, Minor: 25, Patch: 9}, "<", &Version{Major: 1, Minor: 26, Patch: 9}},
 
-		{&semver{Major: 1, Minor: 25, Patch: 9, Stability: "beta", PreRelease: "2.1"}, "<", &semver{Major: 1, Minor: 25, Patch: 9, Stability: "beta", PreRelease: "3"}},
-		{&semver{Major: 1, Minor: 25, Patch: 9, Stability: "beta", PreRelease: "2.1"}, "<", &semver{Major: 1, Minor: 25, Patch: 9, Stability: "rc"}},
+		{&Version{Major: 1, Minor: 25, Patch: 9, Stability: "beta", PreRelease: "2.1"}, "<", &Version{Major: 1, Minor: 25, Patch: 9, Stability: "beta", PreRelease: "3"}},
+		{&Version{Major: 1, Minor: 25, Patch: 9, Stability: "beta", PreRelease: "2.1"}, "<", &Version{Major: 1, Minor: 25, Patch: 9, Stability: "rc"}},
 
-		{&semver{Major: 1, Minor: 25, Patch: 9}, ">=", &semver{Major: 1, Minor: 24, Patch: 9}},
-		{&semver{Major: 1, Minor: 25, Patch: 9}, ">=", &semver{Major: 1, Minor: 25, Patch: 9}},
-		{&semver{Major: 1, Minor: 25, Patch: 9}, ">=", &semver{Major: 1, Minor: 26, Patch: 9}},
+		{&Version{Major: 1, Minor: 25, Patch: 9}, ">=", &Version{Major: 1, Minor: 24, Patch: 9}},
+		{&Version{Major: 1, Minor: 25, Patch: 9}, ">=", &Version{Major: 1, Minor: 25, Patch: 9}},
+		{&Version{Major: 1, Minor: 25, Patch: 9}, ">=", &Version{Major: 1, Minor: 26, Patch: 9}},
 
-		{&semver{Major: 1, Minor: 25, Patch: 9}, "==", &semver{Major: 1, Minor: 22, Patch: 9}},
-		{&semver{Major: 1, Minor: 25, Patch: 9}, "==", &semver{Major: 1, Minor: 25, Patch: 9}},
-		{&semver{Major: 1, Minor: 25, Patch: 9}, "==", &semver{Major: 1, Minor: 26, Patch: 9}},
+		{&Version{Major: 1, Minor: 25, Patch: 9}, "==", &Version{Major: 1, Minor: 22, Patch: 9}},
+		{&Version{Major: 1, Minor: 25, Patch: 9}, "==", &Version{Major: 1, Minor: 25, Patch: 9}},
+		{&Version{Major: 1, Minor: 25, Patch: 9}, "==", &Version{Major: 1, Minor: 26, Patch: 9}},
 
-		{&semver{Major: 1, Minor: 25, Patch: 9, Stability: "beta", PreRelease: "2.1"}, "==", &semver{Major: 1, Minor: 25, Patch: 9, Stability: "beta", PreRelease: "2.1"}},
+		{&Version{Major: 1, Minor: 25, Patch: 9, Stability: "beta", PreRelease: "2.1"}, "==", &Version{Major: 1, Minor: 25, Patch: 9, Stability: "beta", PreRelease: "2.1"}},
 
-		{&semver{Major: 1, Minor: 25, Patch: 9}, "=", &semver{Major: 1, Minor: 24, Patch: 9}},
-		{&semver{Major: 1, Minor: 25, Patch: 9}, "=", &semver{Major: 1, Minor: 25, Patch: 9}},
-		{&semver{Major: 1, Minor: 25, Patch: 9}, "=", &semver{Major: 1, Minor: 26, Patch: 9}},
+		{&Version{Major: 1, Minor: 25, Patch: 9}, "=", &Version{Major: 1, Minor: 24, Patch: 9}},
+		{&Version{Major: 1, Minor: 25, Patch: 9}, "=", &Version{Major: 1, Minor: 25, Patch: 9}},
+		{&Version{Major: 1, Minor: 25, Patch: 9}, "=", &Version{Major: 1, Minor: 26, Patch: 9}},
 
-		{&semver{Major: 1, Minor: 25, Patch: 9}, "!=", &semver{Major: 1, Minor: 24, Patch: 9}},
-		{&semver{Major: 1, Minor: 25, Patch: 9}, "!=", &semver{Major: 1, Minor: 25, Patch: 9}},
-		{&semver{Major: 1, Minor: 25, Patch: 9}, "!=", &semver{Major: 1, Minor: 26, Patch: 9}},
+		{&Version{Major: 1, Minor: 25, Patch: 9}, "!=", &Version{Major: 1, Minor: 24, Patch: 9}},
+		{&Version{Major: 1, Minor: 25, Patch: 9}, "!=", &Version{Major: 1, Minor: 25, Patch: 9}},
+		{&Version{Major: 1, Minor: 25, Patch: 9}, "!=", &Version{Major: 1, Minor: 26, Patch: 9}},
 
-		{&semver{Major: 1, Minor: 25, Patch: 9}, "<>", &semver{Major: 1, Minor: 24, Patch: 9}},
-		{&semver{Major: 1, Minor: 25, Patch: 9}, "<>", &semver{Major: 1, Minor: 25, Patch: 9}},
-		{&semver{Major: 1, Minor: 25, Patch: 9}, "<>", &semver{Major: 1, Minor: 26, Patch: 9}},
+		{&Version{Major: 1, Minor: 25, Patch: 9}, "<>", &Version{Major: 1, Minor: 24, Patch: 9}},
+		{&Version{Major: 1, Minor: 25, Patch: 9}, "<>", &Version{Major: 1, Minor: 25, Patch: 9}},
+		{&Version{Major: 1, Minor: 25, Patch: 9}, "<>", &Version{Major: 1, Minor: 26, Patch: 9}},
 	}
 
 	return cases

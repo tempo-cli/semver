@@ -6,33 +6,33 @@ const (
 	GreaterThan
 )
 
-func (a *semver) LessThan(b Version) bool {
+func (a *Version) LessThan(b *Version) bool {
 	return LessThan == compare(a, b)
 }
 
-func (a *semver) GreaterThan(b Version) bool {
+func (a *Version) GreaterThan(b *Version) bool {
 	return GreaterThan == compare(a, b)
 }
 
-func (a *semver) LessThanOrEqual(b Version) bool {
+func (a *Version) LessThanOrEqual(b *Version) bool {
 	comparison := compare(a, b)
 	return LessThan == comparison || Equal == comparison
 }
 
-func (a *semver) GreaterThanOrEqual(b Version) bool {
+func (a *Version) GreaterThanOrEqual(b *Version) bool {
 	comparison := compare(a, b)
 	return GreaterThan == comparison || Equal == comparison
 }
 
-func (a *semver) Equal(b Version) bool {
+func (a *Version) Equal(b *Version) bool {
 	return Equal == compare(a, b)
 }
 
-func (a *semver) NotEqual(b Version) bool {
+func (a *Version) NotEqual(b *Version) bool {
 	return Equal != compare(a, b)
 }
 
-func (a *semver) Compare(b Version, operator string) bool {
+func (a *Version) Compare(b *Version, operator string) bool {
 
 	switch operator {
 	case ">":
@@ -54,7 +54,7 @@ func (a *semver) Compare(b Version, operator string) bool {
 	return false
 }
 
-func compare(a Version, b Version) int {
+func compare(a *Version, b *Version) int {
 	if d := comparePart(a.major(), b.major()); d != Equal {
 		return d
 	}
