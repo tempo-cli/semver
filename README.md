@@ -37,14 +37,14 @@ You can parse various different version constraints, including branch names and 
 
 ### Parsing constraints
 
-To parse a version constraint, use the `NewConstraint` function which will return an array of `Constraint` structs which containts the lower and upper bound for the constraint
+To parse a version constraint, use the `NewConstraint` function which will return a `Constraint` struct which contains the lower and upper bound for the constraint
 
 ```go
 
 constraint := semver.NewConstraint("^2.0")
 
-fmt.PrintLn(constraint[0].String) // Prints '>= 2.0.0.0-dev'
-fmt.PrintLn(constraint[1].String) // Prints '< 3.0.0.0-dev'
+fmt.PrintLn(constraint.constraints[0].String) // Prints '>= 2.0.0.0-dev'
+fmt.PrintLn(constraint.constraints[1].String) // Prints '< 3.0.0.0-dev'
 
 ```
 

@@ -33,7 +33,6 @@ func (a *Version) NotEqual(b *Version) bool {
 }
 
 func (a *Version) Compare(b *Version, operator string) bool {
-
 	switch operator {
 	case ">":
 		return GreaterThan == compare(a, b)
@@ -86,7 +85,7 @@ func compare(a *Version, b *Version) int {
 }
 
 func compareStability(a string, b string) int {
-	matches := map[string]int{"dev": 1, "alpha": 2, "beta": 3, "RC": 4, "stable": 5}
+	matches := map[string]int{"dev": 1, "alpha": 2, "beta": 3, "RC": 4, "stable": 5, "": 5}
 
 	if matches[a] > matches[b] {
 		return GreaterThan

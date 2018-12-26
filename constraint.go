@@ -6,41 +6,241 @@ import (
 	"github.com/spf13/cast"
 	"math"
 	"regexp"
+	"strings"
 )
 
 type Constraint struct {
-	operator string
-	version  *Version
-	isEmpty  bool
+	operator    string
+	version     *Version
+	constraints []*Constraint
+	conjunctive bool
+	isEmpty     bool
 }
 
 var (
+	versionReg             = "v?(\\d+)(?:\\.(\\d+))?(?:\\.(\\d+))?(?:\\.(\\d+))?[._-]?(?:(stable|beta|b|RC|alpha|a|patch|pl|p)((?:[.-]?\\d+)+)?)?([.-]?dev)?(?:\\+[^\\s]+)?"
 	operatorMap            = map[string]string{"=": "==", "==": "==", "<>": "!=", "!=": "!=", ">": ">", "<": "<", "<=": "<=", ">=": ">="}
 	stabilityModifierRegex = regexp.MustCompile("(?i)^([^,\\s]+?)@(stable|RC|beta|alpha|dev)$")
 	simpleComparisonRegex  = regexp.MustCompile("^(<>|!=|>=?|<=?|==?)?\\s*(.*)")
 	xRangeRegex            = regexp.MustCompile("^v?(\\d+)(?:\\.(\\d+))?(?:\\.(\\d+))?(?:\\.[xX*])+$")
-	tildeRegex             = regexp.MustCompile("(?i)^~>?v?(\\d+)(?:\\.(\\d+))?(?:\\.(\\d+))?(?:\\.(\\d+))?[._-]?(?:(stable|beta|b|RC|alpha|a|patch|pl|p)((?:[.-]?\\d+)+)?)?([.-]?dev)?$")
-	caretRegex             = regexp.MustCompile("(?i)^\\^v?(\\d+)(?:\\.(\\d+))?(?:\\.(\\d+))?(?:\\.(\\d+))?[._-]?(?:(stable|beta|b|RC|alpha|a|patch|pl|p)((?:[.-]?\\d+)+)?)?([.-]?dev)?$")
-	hyphenRegex            = regexp.MustCompile("(?i)^(?P<from>v?(\\d+)(?:\\.(\\d+))?(?:\\.(\\d+))?(?:\\.(\\d+))?[._-]?(?:(stable|beta|b|RC|alpha|a|patch|pl|p)((?:[.-]?\\d+)+)?)?([.-]?dev)?) +- +(?P<to>v?(\\d+)(?:\\.(\\d+))?(?:\\.(\\d+))?(?:\\.(\\d+))?[._-]?(?:(stable|beta|b|RC|alpha|a|patch|pl|p)((?:[.-]?\\d+)+)?)?([.-]?dev)?)($)")
+	tildeRegex             = regexp.MustCompile("(?i)^~>?" + versionReg + "$")
+	caretRegex             = regexp.MustCompile("(?i)^\\^" + versionReg + "$")
+	hyphenRegex            = regexp.MustCompile("(?i)^(" + versionReg + ") +- +(" + versionReg + ")($)")
+	removeStabilityRegex   = regexp.MustCompile("(?i)^([^,\\s]*?)@(stable|RC|beta|alpha|dev)$")
+	devConstraintRegex     = regexp.MustCompile("(?i)^(dev-[^,\\s@]+?|[^,\\s@]+?\\.x-dev)#.+$")
+	orSplitRegex           = regexp.MustCompile("\\s*\\|\\|?\\s*")
+	andConstraintRegex     = regexp.MustCompile("\\s*[ ,]\\s*")
 )
 
-func (c *Constraint) String() string {
-	result := fmt.Sprintf("%s %s", c.operator, c.version.String())
+func NewConstraint(constraint string) (*Constraint, error) {
+	var version = constraint
 
-	if "-stable" == result[len(result)-7:] {
-		result = result[0 : len(result)-7]
+	result := removeStabilityRegex.FindStringSubmatch(constraint)
+
+	if nil != result {
+		version = result[1]
 	}
 
-	return result
+	result = devConstraintRegex.FindStringSubmatch(constraint)
+
+	if nil != result {
+		version = result[1]
+	}
+
+	orConstraints := orSplitRegex.Split(version, -1)
+	var orGroups []*Constraint
+
+	for _, constraints := range orConstraints {
+
+		andConstraints := parseAndConstraints(constraints)
+
+		if len(andConstraints) > 1 {
+			andRange := &Constraint{conjunctive: true}
+
+			for _, constraints := range andConstraints {
+				c, err := parseConstraint(constraints)
+
+				if nil != err {
+					return nil, err
+				}
+
+				if len(c.constraints) > 0 {
+					andRange.constraints = append(andRange.constraints, c.constraints...)
+				} else {
+					andRange.constraints = append(andRange.constraints, c)
+				}
+			}
+
+			orGroups = append(orGroups, andRange)
+
+		} else {
+			c, err := parseConstraint(constraints)
+
+			if nil != err {
+				return nil, err
+			}
+
+			orGroups = append(orGroups, c)
+		}
+
+	}
+
+	if 1 == len(orGroups) {
+		return orGroups[0], nil
+	} else if
+	2 == len(orGroups) &&
+	// parse the two OR groups and if they are contiguous we collapse
+	// them into one constraint
+		2 == len(orGroups[0].constraints) &&
+		2 == len(orGroups[1].constraints) &&
+		">=" == orGroups[0].constraints[0].operator &&
+		"<" == orGroups[0].constraints[1].operator &&
+		">=" == orGroups[1].constraints[0].operator &&
+		"<" == orGroups[1].constraints[1].operator &&
+		orGroups[0].constraints[1].version.String() == orGroups[1].constraints[0].version.String() {
+
+		return &Constraint{constraints: []*Constraint{orGroups[0].constraints[0], orGroups[1].constraints[1]}, conjunctive: false}, nil
+	}
+
+	return &Constraint{conjunctive: false, constraints: orGroups}, nil
 }
 
-func NewConstraint(constraint string) ([]*Constraint, error) {
+func (c *Constraint) Matches(version *Version) bool {
+	if len(c.constraints) > 0 {
+		if false == c.conjunctive {
+			for _, c := range c.constraints {
+				if c.Matches(version) {
+					return true
+				}
+
+			}
+
+			return false
+		}
+
+		for _, c := range c.constraints {
+			if !c.Matches(version) {
+				return false
+			}
+		}
+
+		return true
+	}
+
+	if c.isEmpty {
+		return true
+	}
+
+	return version.Compare(c.version, c.operator)
+}
+
+func (c *Constraint) String() string {
+	if c.isEmpty {
+		return "[]"
+	}
+
+	if 0 == len(c.constraints) {
+		result := fmt.Sprintf("%s %s", c.operator, c.version.String())
+		if "-stable" == result[len(result)-7:] {
+			result = result[0 : len(result)-7]
+		}
+		return result
+	}
+
+	var glue string
+
+	if true == c.conjunctive {
+		glue = " "
+	} else {
+		glue = " || "
+	}
+
+	totalConstraints := len(c.constraints)
+
+	if 1 == totalConstraints {
+		constraint := c.constraints[0]
+
+		if constraint.isEmpty {
+			return "[]"
+		}
+
+		return constraint.String()
+	}
+
+	var constraints = make([]string, 0, totalConstraints)
+	for _, constraint := range c.constraints {
+		constraints = append(constraints, constraint.String())
+	}
+
+	return "[" + strings.Join(constraints, glue) + "]"
+}
+
+func parseAndConstraints(constraint string) []string {
+	var (
+		index          = 0
+		constraintPart = 0
+		constraints    []string
+	)
+
+	split := andConstraintRegex.Split(constraint, -1)
+
+	if 1 == len(split) {
+		return []string{constraint}
+	}
+
+	var parts []string
+	for _, str := range split {
+		if str != "" {
+			parts = append(parts, str)
+		}
+	}
+
+	partsLen := len(parts)
+
+	for {
+
+		if index >= partsLen {
+			break
+		}
+
+		constraints = append(constraints, "")
+
+		if "<" == parts[index] || ">" == parts[index] || ">=" == parts[index] || "<=" == parts[index] || "^" == parts[index] || "!=" == parts[index] {
+			constraints[constraintPart] += parts[index]
+			index++
+
+			if index >= partsLen {
+				break
+			}
+		}
+
+		constraints[constraintPart] += parts[index]
+
+		if index+1 >= partsLen {
+			break
+		}
+
+		if "as" == parts[index+1] || "-" == parts[index+1] {
+			index++
+			constraints[constraintPart] += " " + parts[index]
+
+			index++
+			constraints[constraintPart] += " " + parts[index]
+
+		}
+
+		index++
+		constraintPart++
+	}
+
+	return constraints
+}
+
+func parseConstraint(constraint string) (*Constraint, error) {
 	b := []byte(constraint)
 
 	if match, _ := regexp.Match("^v?[xX*](\\.[xX*])*$", b); match {
-		c := make([]*Constraint, 0, 1)
-		c = append(c, &Constraint{isEmpty: true})
-		return c, nil
+		return &Constraint{isEmpty: true}, nil
 	}
 
 	if tildeRegex.Match(b) {
@@ -66,7 +266,7 @@ func NewConstraint(constraint string) ([]*Constraint, error) {
 	return nil, fmt.Errorf("unable to parse constraint %s", constraint)
 }
 
-func basicRange(constraint string) ([]*Constraint, error) {
+func basicRange(constraint string) (*Constraint, error) {
 	result := stabilityModifierRegex.FindStringSubmatch(constraint)
 
 	var stability = ""
@@ -91,7 +291,7 @@ func basicRange(constraint string) ([]*Constraint, error) {
 				return nil, err
 			}
 
-			if len(version) >= 4 && "dev-" != version[0:4] {
+			if len(version) < 4 || "dev-" != version[0:4] {
 				version += "-dev"
 			}
 		}
@@ -109,10 +309,7 @@ func basicRange(constraint string) ([]*Constraint, error) {
 		operator = "="
 	}
 
-	c := make([]*Constraint, 0, 1)
-	c = append(c, &Constraint{operatorMap[operator], v, false})
-
-	return c, nil
+	return &Constraint{operator: operatorMap[operator], version: v, conjunctive: true}, nil
 }
 
 /*
@@ -123,10 +320,10 @@ func basicRange(constraint string) ([]*Constraint, error) {
  the inclusive range, then all versions that start with the supplied parts of the tuple are accepted, but
  nothing that would be greater than the provided tuple parts.
  */
-func hyphenRange(constraint string) ([]*Constraint, error) {
+func hyphenRange(constraint string) (*Constraint, error) {
 	matches := hyphenRegex.FindStringSubmatch(constraint)
 
-	c := make([]*Constraint, 0, 2)
+	c := &Constraint{conjunctive: true}
 
 	// Calculate the stability suffix
 	var lowStabilitySuffix = ""
@@ -139,7 +336,7 @@ func hyphenRange(constraint string) ([]*Constraint, error) {
 		return nil, err
 	}
 
-	c = append(c, &Constraint{">=", lowVersion, false})
+	c.constraints = append(c.constraints, &Constraint{operator: ">=", version: lowVersion, conjunctive: true})
 	var isEmpty = func(x string) bool {
 		if "0" == x {
 			return false
@@ -154,7 +351,7 @@ func hyphenRange(constraint string) ([]*Constraint, error) {
 			return nil, err
 		}
 
-		c = append(c, &Constraint{"<=", highVersion, false})
+		c.constraints = append(c.constraints, &Constraint{operator: "<=", version: highVersion, conjunctive: true})
 	} else {
 		var position = 0
 		highMatch := []string{"", matches[10], matches[11], matches[12], matches[13]}
@@ -169,7 +366,7 @@ func hyphenRange(constraint string) ([]*Constraint, error) {
 			return nil, err
 		}
 
-		c = append(c, &Constraint{"<", highVersion, false})
+		c.constraints = append(c.constraints, &Constraint{operator: "<", version: highVersion, conjunctive: true})
 	}
 
 	return c, nil
@@ -181,7 +378,7 @@ func hyphenRange(constraint string) ([]*Constraint, error) {
  Any of X, x, or * may be used to "stand in" for one of the numeric values in the [major, minor, patch] tuple.
  A partial version range is treated as an X-Range, so the special character is in fact optional.
 */
-func xRange(constraint string) ([]*Constraint, error) {
+func xRange(constraint string) (*Constraint, error) {
 	matches := xRangeRegex.FindStringSubmatch(constraint)
 	position := 0
 
@@ -205,16 +402,10 @@ func xRange(constraint string) ([]*Constraint, error) {
 	}
 
 	if lowVersion.String() == "0.0.0.0-dev" {
-		c := make([]*Constraint, 0, 1)
-		c = append(c, &Constraint{"<", highVersion, false})
-		return c, nil
+		return &Constraint{operator: "<", version: highVersion, conjunctive: true}, nil
 	}
 
-	c := make([]*Constraint, 0, 2)
-	c = append(c, &Constraint{">=", lowVersion, false})
-	c = append(c, &Constraint{"<", highVersion, false})
-
-	return c, nil
+	return &Constraint{constraints: []*Constraint{{operator: ">=", version: lowVersion, conjunctive: true}, {operator: "<", version: highVersion, conjunctive: true}}, conjunctive: true}, nil
 }
 
 /*
@@ -224,7 +415,7 @@ func xRange(constraint string) ([]*Constraint, error) {
  In other words, this allows patch and minor updates for versions 1.0.0 and above, patch updates for
  versions 0.X >=0.1.0, and no updates for versions 0.0.X
  */
-func caretRange(constraint string) ([]*Constraint, error) {
+func caretRange(constraint string) (*Constraint, error) {
 	matches := caretRegex.FindStringSubmatch(constraint)
 	stabilitySuffix := ""
 	position := 0
@@ -254,11 +445,7 @@ func caretRange(constraint string) ([]*Constraint, error) {
 		return nil, err
 	}
 
-	c := make([]*Constraint, 0, 2)
-	c = append(c, &Constraint{">=", lowVersion, false})
-	c = append(c, &Constraint{"<", highVersion, false})
-
-	return c, nil
+	return &Constraint{constraints: []*Constraint{{operator: ">=", version: lowVersion, conjunctive: true}, {operator: "<", version: highVersion, conjunctive: true}}, conjunctive: true}, nil
 }
 
 /*
@@ -268,7 +455,7 @@ func caretRange(constraint string) ([]*Constraint, error) {
  version, to ensure that unstable instances of the current version are allowed. However, if a stability
  suffix is added to the constraint, then a >= match on the current version is used instead.
 */
-func parseTilde(constraint string) ([]*Constraint, error) {
+func parseTilde(constraint string) (*Constraint, error) {
 	matches := tildeRegex.FindStringSubmatch(constraint)
 
 	if "~>" == constraint[0:2] {
@@ -308,11 +495,7 @@ func parseTilde(constraint string) ([]*Constraint, error) {
 		return nil, err
 	}
 
-	c := make([]*Constraint, 0, 2)
-	c = append(c, &Constraint{">=", lowVersion, false})
-	c = append(c, &Constraint{"<", highVersion, false})
-
-	return c, nil
+	return &Constraint{constraints: []*Constraint{{operator: ">=", version: lowVersion, conjunctive: true}, {operator: "<", version: highVersion, conjunctive: true}}, conjunctive: true}, nil
 }
 
 func expandVersion(matches []string, position int, increment int, pad string, append string) (*Version, error) {
