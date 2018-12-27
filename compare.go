@@ -109,4 +109,3 @@ func comparePart(a int, b int) int {
 
 	return Equal
 }
-

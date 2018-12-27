@@ -18,24 +18,23 @@ type Constraint struct {
 }
 
 var (
-	versionReg             = "v?(\\d+)(?:\\.(\\d+))?(?:\\.(\\d+))?(?:\\.(\\d+))?[._-]?(?:(stable|beta|b|RC|alpha|a|patch|pl|p)((?:[.-]?\\d+)+)?)?([.-]?dev)?(?:\\+[^\\s]+)?"
+	versionReg             = `v?(\d+)(?:\.(\d+))?(?:\.(\d+))?(?:\.(\d+))?` + stabilityRegex + `?([.-]?dev)?(?:\+[^\s]+)?`
 	operatorMap            = map[string]string{"=": "==", "==": "==", "<>": "!=", "!=": "!=", ">": ">", "<": "<", "<=": "<=", ">=": ">="}
-	stabilityModifierRegex = regexp.MustCompile("(?i)^([^,\\s]+?)@(stable|RC|beta|alpha|dev)$")
-	simpleComparisonRegex  = regexp.MustCompile("^(<>|!=|>=?|<=?|==?)?\\s*(.*)")
-	xRangeRegex            = regexp.MustCompile("^v?(\\d+)(?:\\.(\\d+))?(?:\\.(\\d+))?(?:\\.[xX*])+$")
-	tildeRegex             = regexp.MustCompile("(?i)^~>?" + versionReg + "$")
-	caretRegex             = regexp.MustCompile("(?i)^\\^" + versionReg + "$")
-	hyphenRegex            = regexp.MustCompile("(?i)^(" + versionReg + ") +- +(" + versionReg + ")($)")
-	removeStabilityRegex   = regexp.MustCompile("(?i)^([^,\\s]*?)@(stable|RC|beta|alpha|dev)$")
-	devConstraintRegex     = regexp.MustCompile("(?i)^(dev-[^,\\s@]+?|[^,\\s@]+?\\.x-dev)#.+$")
-	orSplitRegex           = regexp.MustCompile("\\s*\\|\\|?\\s*")
-	andConstraintRegex     = regexp.MustCompile("\\s*[ ,]\\s*")
+	stabilityModifierRegex = regexp.MustCompile(`(?i)^([^,\s]*?)@(stable|RC|beta|alpha|dev)$`)
+	simpleComparisonRegex  = regexp.MustCompile(`^(<>|!=|>=?|<=?|==?)?\s*(.*)`)
+	xRangeRegex            = regexp.MustCompile(`^v?(\d+)(?:\.(\d+))?(?:\.(\d+))?(?:\.[xX*])+$`)
+	tildeRegex             = regexp.MustCompile(`(?i)^~>?` + versionReg + `$`)
+	caretRegex             = regexp.MustCompile(`(?i)^\^` + versionReg + `$`)
+	hyphenRegex            = regexp.MustCompile(`(?i)^(` + versionReg + `) +- +(` + versionReg + `)($)`)
+	devConstraintRegex     = regexp.MustCompile(`(?i)^(dev-[^,\s@]+?|[^,\s@]+?\.x-dev)#.+$`)
+	orSplitRegex           = regexp.MustCompile(`\s*\|\|?\s*`)
+	andConstraintRegex     = regexp.MustCompile(`\s*[ ,]\s*`)
 )
 
 func NewConstraint(constraint string) (*Constraint, error) {
 	var version = constraint
 
-	result := removeStabilityRegex.FindStringSubmatch(constraint)
+	result := stabilityModifierRegex.FindStringSubmatch(constraint)
 
 	if nil != result {
 		version = result[1]
@@ -87,10 +86,9 @@ func NewConstraint(constraint string) (*Constraint, error) {
 
 	if 1 == len(orGroups) {
 		return orGroups[0], nil
-	} else if
-	2 == len(orGroups) &&
-	// parse the two OR groups and if they are contiguous we collapse
-	// them into one constraint
+	} else if 2 == len(orGroups) &&
+		// parse the two OR groups and if they are contiguous we collapse
+		// them into one constraint
 		2 == len(orGroups[0].constraints) &&
 		2 == len(orGroups[1].constraints) &&
 		">=" == orGroups[0].constraints[0].operator &&
@@ -239,7 +237,7 @@ func parseAndConstraints(constraint string) []string {
 func parseConstraint(constraint string) (*Constraint, error) {
 	b := []byte(constraint)
 
-	if match, _ := regexp.Match("^v?[xX*](\\.[xX*])*$", b); match {
+	if match, _ := regexp.Match(`^v?[xX*](\.[xX*])*$`, b); match {
 		return &Constraint{isEmpty: true}, nil
 	}
 
@@ -282,15 +280,10 @@ func basicRange(constraint string) (*Constraint, error) {
 
 	version := matches[2]
 
-	if "" != stability && "stable" != ParseStability(stability) {
+	if "" != stability && "stable" == ParseStability(version) {
 		version += "-" + stability
 	} else if "<" == matches[1] || ">=" == matches[1] {
-		if match, err := regexp.Match("(?i)[._-]?(?:(dev|stable|beta|b|RC|alpha|a|patch|pl|p)((?:[.-]?\\d+)*)?)", []byte(version)); !match {
-
-			if nil != err {
-				return nil, err
-			}
-
+		if !stabilityRegexC.Match([]byte(version)) {
 			if len(version) < 4 || "dev-" != version[0:4] {
 				version += "-dev"
 			}
@@ -319,7 +312,7 @@ func basicRange(constraint string) (*Constraint, error) {
  then the missing pieces are replaced with zeroes. If a partial version is provided as the second version in
  the inclusive range, then all versions that start with the supplied parts of the tuple are accepted, but
  nothing that would be greater than the provided tuple parts.
- */
+*/
 func hyphenRange(constraint string) (*Constraint, error) {
 	matches := hyphenRegex.FindStringSubmatch(constraint)
 
@@ -414,7 +407,7 @@ func xRange(constraint string) (*Constraint, error) {
  Allows changes that do not modify the left-most non-zero digit in the [major, minor, patch] tuple.
  In other words, this allows patch and minor updates for versions 1.0.0 and above, patch updates for
  versions 0.X >=0.1.0, and no updates for versions 0.0.X
- */
+*/
 func caretRange(constraint string) (*Constraint, error) {
 	matches := caretRegex.FindStringSubmatch(constraint)
 	stabilitySuffix := ""

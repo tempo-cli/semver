@@ -10,23 +10,23 @@ import (
 var (
 	aliasRegex = regexp.MustCompile(`^([^,\s]+)\s+as\s+([^,\s]+)$`)
 
-	stabilityRegex = `(?i)[._-]?(?:(dev|stable|beta|b|RC|alpha|a|patch|pl|p)((?:[.-]?\d+)*)?)`
+	stabilityRegex = `[._-]?(?:(dev|stable|beta|b|RC|alpha|a|patch|pl|p)((?:[.-]?\d+)*)?)`
 
 	branchRegex = regexp.MustCompile(`^v?(\d+)(\.(?:\d+|[xX*]))?(\.(?:\d+|[xX*]))?(\.(?:\d+|[xX*]))?$`)
 
 	versionRegex =
 	// Match normal version string (1.2.3)
-		`^v?([0-9]{1,5})(\.[0-9]+)?(\.[0-9]+)?(\.[0-9]+)?` +
+	`^v?([0-9]{1,5})(\.[0-9]+)?(\.[0-9]+)?(\.[0-9]+)?` +
 
 		// Match pre-release info (-beta.2). This supports dot, underscore, dash or nothing as a prefix to match Composers rules
-			stabilityRegex + "?([.-]?dev)?"
+		stabilityRegex + "?([.-]?dev)?"
 
-	// Match metadata (E.G +build.1234)
-	versionRegexC = regexp.MustCompile(versionRegex + `(\+([0-9A-Za-z\-]+(\.[0-9A-Za-z\-]+)*))?$`)
+	// Match metadata (E.G + build.1234)
+	versionRegexC = regexp.MustCompile(`(?i)` + versionRegex + `(\+([0-9A-Za-z\-]+(\.[0-9A-Za-z\-]+)*))?$`)
 
 	dateTimeRegex = regexp.MustCompile(`^v?(\d{4}(?:[.:-]?\d{2}){1,6}(?:[.:-]?\d{1,3})?)` + stabilityRegex + `?$`)
 
-	stabilityRegexC = regexp.MustCompile(stabilityRegex)
+	stabilityRegexC = regexp.MustCompile(`(?i)` + stabilityRegex)
 	branchMatcher   = regexp.MustCompile(`(?i)(.*?)[.-]?dev$`)
 	replaceRegex    = regexp.MustCompile(`([^0-9]+)`)
 )
